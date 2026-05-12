@@ -65,25 +65,25 @@ input :: proc(pfd: ^[1]posix.pollfd) {
 				if n == 3 {
 					switch seq[2] {
 					case 65:
-						// fmt.println("up")
+						// UP
 						update_pos(&gs.player.pos, {0, -1})
 					case 66:
-						// fmt.println("down")
+						// DOWN
 						update_pos(&gs.player.pos, {0, 1})
 					case 67:
-						// fmt.println("right")
+						// RIGHT
 						update_pos(&gs.player.pos, {1, 0})
 					case 68:
-						// fmt.println("left")
+						// LEFT
 						update_pos(&gs.player.pos, {-1, 0})
 					}
 				}
 			} else {
 				switch seq[0] {
 				case 32:
-				// fmt.println("SPACE")
+				// SPACE
 				case 10:
-				// fmt.println("ENTER")
+				// ENTER
 				}
 			}
 		}
@@ -111,7 +111,6 @@ update :: proc() {
 
 render :: proc() {
 	fmt.print("\x1b[2J\x1b[H\x1b[?25l")
-	// fmt.println("Game running...")
 
 	fmt.printf("%d ROWS x %d COLS ", gs.window.row, gs.window.col)
 	fmt.printf("| x: %d y: %d", gs.player.pos.x, gs.player.pos.y)
