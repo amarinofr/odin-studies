@@ -27,21 +27,19 @@ gs: ^game_state
 
 main :: proc() {
 	gs = new(game_state)
-	linux.ioctl(cast(linux.Fd)(posix.STDOUT_FILENO), linux.TIOCGWINSZ, uintptr(&gs.window))
 
 	gs.pfd[0].fd = posix.STDIN_FILENO
 	gs.pfd[0].events = {.IN}
 	gs.player.pos = {1, 2}
 
 	res := posix.tcgetattr(posix.STDIN_FILENO, &gs.og_mode)
-	defer (posix.tcsetattr(posix.STDIN_FILENO, .TCSANOW, &gs.og_mode))
 	assert(res == .OK)
-
 	new_mode := gs.og_mode
 	new_mode.c_lflag -= {.ECHO, .ICANON}
-	res = posix.tcsetattr(posix.STDIN_FILENO, .TCSANOW, &new_mode)
-	assert(res == .OK)
 
+	res = posix.tcsetattr(posix.STDIN_FILENO, .TCSANOW, &new_mode)
+	defer (posix.tcsetattr(posix.STDIN_FILENO, .TCSANOW, &gs.og_mode))
+	assert(res == .OK)
 	loop: for {
 		input(&gs.pfd)
 		update()
@@ -51,35 +49,35 @@ main :: proc() {
 
 input :: proc(pfd: ^[1]posix.pollfd) {
 	poll := posix.poll(raw_data(pfd[:]), u64(len(pfd[:])), 16)
-	seq: [3]byte
+	buf: [3]byte
 
 	if poll > 0 {
-		n := posix.read(posix.STDIN_FILENO, raw_data(seq[:]), 3)
+		n := posix.read(posix.STDIN_FILENO, raw_data(buf[:]), 3)
 
 		if n > 0 {
-			if seq[0] == 27 {
+			if buf[0] == 27 {
 				if n == 1 {
 					fmt.println("Quitting")
 					os.exit(-1)
 				}
 				if n == 3 {
-					switch seq[2] {
+					switch buf[2] {
 					case 65:
 						// UP
-						update_pos(&gs.player.pos, {0, -1})
+						gs.player.dir = {0, -1}
 					case 66:
 						// DOWN
-						update_pos(&gs.player.pos, {0, 1})
+						gs.player.dir = {0, 1}
 					case 67:
 						// RIGHT
-						update_pos(&gs.player.pos, {1, 0})
+						gs.player.dir = {1, 0}
 					case 68:
 						// LEFT
-						update_pos(&gs.player.pos, {-1, 0})
+						gs.player.dir = {-1, 0}
 					}
 				}
 			} else {
-				switch seq[0] {
+				switch buf[0] {
 				case 32:
 				// SPACE
 				case 10:
@@ -90,30 +88,33 @@ input :: proc(pfd: ^[1]posix.pollfd) {
 	}
 }
 
-update_pos :: proc(pos: ^Vec2, dir: Vec2) {
-	if pos.x >= 1 && pos.x <= int(gs.window.col) {
-		pos.x += dir.x
+update_pos :: proc() {
+	if gs.player.pos.x >= 1 &&
+	   gs.player.pos.x <= int(gs.window.col) &&
+	   gs.player.pos.y >= 2 &&
+	   gs.player.pos.y <= int(gs.window.row) {
+		gs.player.pos += gs.player.dir
 
-		if pos.x >= int(gs.window.col) do pos.x = int(gs.window.col)
-		if pos.x < 1 do pos.x = 1
-	}
-	if pos.y >= 2 && pos.y <= int(gs.window.row) {
-		pos.y += dir.y
-
-		if pos.y >= int(gs.window.row) do pos.y = int(gs.window.row)
-		if pos.y < 2 do pos.y = 2
+		if gs.player.pos.x >= int(gs.window.col) do gs.player.pos.x = int(gs.window.col)
+		if gs.player.pos.x < 1 do gs.player.pos.x = 1
+		if gs.player.pos.y >= int(gs.window.row) do gs.player.pos.y = int(gs.window.row)
+		if gs.player.pos.y < 2 do gs.player.pos.y = 2
 	}
 }
 
 update :: proc() {
-
+	update_pos()
+	gs.player.dir = {0, 0}
 }
 
 render :: proc() {
+	linux.ioctl(cast(linux.Fd)(posix.STDOUT_FILENO), linux.TIOCGWINSZ, uintptr(&gs.window))
+
 	fmt.print("\x1b[2J\x1b[H\x1b[?25l")
 
 	fmt.printf("%d ROWS x %d COLS ", gs.window.row, gs.window.col)
-	fmt.printf("| x: %d y: %d", gs.player.pos.x, gs.player.pos.y)
+	fmt.printf("| x: %d y: %d ", gs.player.pos.x, gs.player.pos.y)
+	fmt.printf("| dir x: %d, dir y: %d", gs.player.dir.x, gs.player.dir.y)
 
 	fmt.printf("\x1b[%d;%dH", gs.player.pos.y, gs.player.pos.x)
 	fmt.print("@")
