@@ -110,6 +110,7 @@ update :: proc() {
 render :: proc() {
 	linux.ioctl(cast(linux.Fd)(posix.STDOUT_FILENO), linux.TIOCGWINSZ, uintptr(&gs.window))
 
+	// Clears the terminal
 	fmt.print("\x1b[2J\x1b[H\x1b[?25l")
 
 	fmt.printf("%d ROWS x %d COLS ", gs.window.row, gs.window.col)
