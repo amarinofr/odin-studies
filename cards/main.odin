@@ -38,9 +38,9 @@ main :: proc() {
 	}
 }
 
-is_within_bounds :: proc(el_pos, threshold: f32, el_bounds: [2]f32) -> bool {
+is_within_bounds :: proc(el_pos: f32, el_bounds: [2]f32) -> bool {
 	check: bool
-	if el_pos - threshold >= 0 && el_pos + threshold <= SCREEN_W {
+	if el_pos >= el_bounds.x && el_pos <= el_bounds.y {
 		check = true
 	}
 	return check
@@ -65,10 +65,10 @@ input :: proc() {
 
 update :: proc() {
 	if is_dragging {
-		if is_within_bounds(mouse_pos.x, 0, {0, SCREEN_W}) {
+		if is_within_bounds(mouse_pos.x, {0, SCREEN_W}) {
 			card_1.x = mouse_pos.x - point_of_contact.x
 		}
-		if is_within_bounds(mouse_pos.y, 0, {0, SCREEN_H}) {
+		if is_within_bounds(mouse_pos.y, {0, SCREEN_H}) {
 			card_1.y = mouse_pos.y - point_of_contact.y
 		}
 	}
@@ -80,7 +80,6 @@ render :: proc() {
 	rl.DrawFPS(30, 770)
 
 	rl.DrawRectangleRec(card_1.rec, card_1.color)
-
 
 	rl.EndDrawing()
 }
