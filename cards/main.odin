@@ -7,29 +7,48 @@ Vec2 :: [2]f32
 
 SCREEN_W :: 800
 SCREEN_H :: 800
+ENTITY_UID :: distinct int
 
-mouse_pos: Vec2
-collision: bool
-is_dragging: bool
-point_of_contact: Vec2
+Entity :: struct {
+	id:         ENTITY_UID,
+	x, y, w, h: f32,
+	color:      rl.Color,
+}
 
-card :: struct {
-	using rec: rl.Rectangle,
-	color:     rl.Color,
+Game_State :: struct {
+	mouse_pos:        Vec2,
+	collision:        bool,
+	is_dragging:      bool,
+	can_drop:         bool,
+	point_of_contact: Vec2,
+	world:            struct {
+		entities: [dynamic]Entity,
+	},
 }
 
 card_1: card
+pool: card
+
+gs: ^Game_State
 
 main :: proc() {
 	rl.InitWindow(SCREEN_W, SCREEN_H, "Cards")
 	rl.SetTargetFPS(60)
 	defer (rl.CloseWindow())
 
+	gs = new(Game_State)
+
 	card_1.width = 150
 	card_1.height = 200
 	card_1.x = SCREEN_W / 2 - card_1.width / 2
 	card_1.y = SCREEN_H / 2 - card_1.height / 2
 	card_1.color = rl.RED
+
+	pool.width = 760
+	pool.height = 220
+	pool.x = 20
+	pool.y = 20
+	pool.color = rl.GREEN
 
 	for !rl.WindowShouldClose() {
 		input()
@@ -60,7 +79,13 @@ input :: proc() {
 
 	if rl.IsMouseButtonDown(.LEFT) && collision {
 		is_dragging = true
+		can_drop = false
+
+		if rl.CheckCollisionRecs(card_1, pool) {
+			can_drop = true
+		}
 	}
+
 }
 
 update :: proc() {
@@ -72,6 +97,18 @@ update :: proc() {
 			card_1.y = mouse_pos.y - point_of_contact.y
 		}
 	}
+
+	if can_drop {
+		card_1.color = rl.YELLOW
+
+		if !is_dragging {
+			card_1.x = pool.width / 2 - card_1.width / 2
+			card_1.y = pool.height / 2 - card_1.height / 2 + pool.y
+			card_1.color = rl.BLUE
+		}
+	} else {
+		card_1.color = rl.RED
+	}
 }
 
 render :: proc() {
@@ -79,6 +116,7 @@ render :: proc() {
 	rl.ClearBackground(rl.BLACK)
 	rl.DrawFPS(30, 770)
 
+	rl.DrawRectangleRec(pool.rec, pool.color)
 	rl.DrawRectangleRec(card_1.rec, card_1.color)
 
 	rl.EndDrawing()
