@@ -16,18 +16,20 @@ Entity :: struct {
 }
 
 Game_State :: struct {
-	mouse_pos:        Vec2,
-	collision:        bool,
-	is_dragging:      bool,
-	can_drop:         bool,
-	point_of_contact: Vec2,
+	ui : struct {
+		mouse_pos:        Vec2,
+		collision:        bool,
+		is_dragging:      bool,
+		can_drop:         bool,
+		point_of_contact: Vec2,
+	},
 	world:            struct {
 		entities: [dynamic]Entity,
 	},
 }
 
-card_1: card
-pool: card
+card_1: Entity
+pool: Entity
 
 gs: ^Game_State
 
@@ -38,14 +40,14 @@ main :: proc() {
 
 	gs = new(Game_State)
 
-	card_1.width = 150
-	card_1.height = 200
-	card_1.x = SCREEN_W / 2 - card_1.width / 2
-	card_1.y = SCREEN_H / 2 - card_1.height / 2
+	card_1.w = 150
+	card_1.h = 200
+	card_1.x = SCREEN_W / 2 - card_1.w / 2
+	card_1.y = SCREEN_H / 2 - card_1.h / 2
 	card_1.color = rl.RED
 
-	pool.width = 760
-	pool.height = 220
+	pool.w = 760
+	pool.h = 220
 	pool.x = 20
 	pool.y = 20
 	pool.color = rl.GREEN
@@ -66,23 +68,23 @@ is_within_bounds :: proc(el_pos: f32, el_bounds: [2]f32) -> bool {
 }
 
 input :: proc() {
-	mouse_pos = rl.GetMousePosition()
+	gs.ui.mouse_pos = rl.GetMousePosition()
 
 	if rl.IsMouseButtonReleased(.LEFT) {
-		is_dragging = false
+		gs.ui.is_dragging = false
 	}
 
 	if rl.IsMouseButtonPressed(.LEFT) {
-		collision = rl.CheckCollisionPointRec(mouse_pos, card_1.rec)
-		point_of_contact = {mouse_pos.x - card_1.x, mouse_pos.y - card_1.y}
+		gs.ui.collision = rl.CheckCollisionPointRec(gs.ui.mouse_pos, card_1.rec)
+		gs.ui.point_of_contact = {gs.ui.mouse_pos.x - card_1.x, gs.ui.mouse_pos.y - card_1.y}
 	}
 
-	if rl.IsMouseButtonDown(.LEFT) && collision {
-		is_dragging = true
-		can_drop = false
+	if rl.IsMouseButtonDown(.LEFT) && gs.ui.collision {
+		gs.ui.is_dragging = true
+		gs.ui.can_drop = false
 
 		if rl.CheckCollisionRecs(card_1, pool) {
-			can_drop = true
+			gs.ui.can_drop = true
 		}
 	}
 
@@ -90,11 +92,11 @@ input :: proc() {
 
 update :: proc() {
 	if is_dragging {
-		if is_within_bounds(mouse_pos.x, {0, SCREEN_W}) {
-			card_1.x = mouse_pos.x - point_of_contact.x
+		if is_within_bounds(gs.ui.mouse_pos.x, {0, SCREEN_W}) {
+			card_1.x = gs.ui.mouse_pos.x - gs.ui.point_of_contact.x
 		}
-		if is_within_bounds(mouse_pos.y, {0, SCREEN_H}) {
-			card_1.y = mouse_pos.y - point_of_contact.y
+		if is_within_bounds(gs.ui.mouse_pos.y, {0, SCREEN_H}) {
+			card_1.y = gs.ui.mouse_pos.y - gs.ui.point_of_contact.y
 		}
 	}
 
@@ -102,8 +104,8 @@ update :: proc() {
 		card_1.color = rl.YELLOW
 
 		if !is_dragging {
-			card_1.x = pool.width / 2 - card_1.width / 2
-			card_1.y = pool.height / 2 - card_1.height / 2 + pool.y
+			card_1.x = pool.w / 2 - card_1.w / 2
+			card_1.y = pool.h / 2 - card_1.h / 2 + pool.y
 			card_1.color = rl.BLUE
 		}
 	} else {
